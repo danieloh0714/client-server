@@ -1,16 +1,18 @@
-import socket
-
 from re import fullmatch
-from sys import argv, exit
+from socket import socket, AF_INET, SOCK_STREAM
+from sys import argv, exit, stderr, stdout
 
 
 def get_parsed_url() -> tuple:
-    args = argv
     # program should take exactly one parameter
-    if len(args) != 2:
+    if len(argv) != 2:
         exit(1)
-    url = args[1]
+    url = argv[1]
+
     # input url must start with 'http://'
+    if url[:5] == "https":
+        stderr.write("Program does not support HTTPS protocol.")
+        exit(1)
     if not fullmatch("http://.*", url):
         exit(1)
     return url, url, url
@@ -36,50 +38,41 @@ def make_get_request(url_parts: tuple) -> bool:
     url_page = "/basic.html"
     url_port = 80
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = socket(AF_INET, SOCK_STREAM)
     s.connect((url_host, url_port))
     req = f"GET {url_page} HTTP/1.0\r\nHost: {url_host}\r\n\r\n"
     s.sendall(req.encode())
 
-    content_length = 0
-    content_type = ""
+    cont_len = 0
+    cont_type = ""
 
     data = []
-    is_body_start = False
-    count = 0
+    is_body = False
     while True:
         buf = s.recv(1)  # receive one byte at a time
         if not buf:
             break
-        data.append(buf.decode())
+        data += buf.decode()
 
-        # if last four chars are two returns, then body begins
+        # if two consecutive returns, then body starts
         if "".join(data[-4:]) == "\r\n\r\n":
-            is_body_start = True
+            is_body = True
 
         # if body started and content length specified, break when content length bytes are received
-        if is_body_start and content_length:
-            count += 1
-            if count == content_length:
+        if is_body and cont_len:
+            cont_len -= 1
+            if cont_len == 0:
                 break
 
         # if body not started, check for content length and content type info
-        if (
-            not is_body_start
-            and not content_length
-            and "".join(data[-16:]) == "Content-Length: "
-        ):
-            content_length = int(get_content_info(s, data))
-        if (
-            not is_body_start
-            and not content_type
-            and "".join(data[-14:]) == "Content-Type: "
-        ):
-            content_type = get_content_info(s, data)
-            if content_type[:9] != "text/html":
-                exit(1)
+        if not is_body and not cont_len and "".join(data[-16:]) == "Content-Length: ":
+            cont_len = int(get_content_info(s, data))
+        if not is_body and not cont_type and "".join(data[-14:]) == "Content-Type: ":
+            cont_type = get_content_info(s, data)
+            if cont_type[:9] != "text/html":
+                return False
 
-    print("".join(data))
+    stdout.write("".join(data))
     return True
 
 
@@ -87,7 +80,7 @@ def main():
     url_parts = get_parsed_url()
     if not make_get_request(url_parts):
         exit(1)
-    exit()
+    exit(0)
 
 
 if __name__ == "__main__":
