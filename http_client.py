@@ -65,6 +65,7 @@ def make_get_request(input_url: str) -> bool:
             # receive one byte at a time; break when no more
             buf = s.recv(1)
             if not buf:
+                s.close()
                 break
             data.append(buf.decode())
 
@@ -80,6 +81,7 @@ def make_get_request(input_url: str) -> bool:
             if is_body and content_len:
                 content_len -= 1
                 if content_len == 0:
+                    s.close()
                     break
 
             # if body not started, check for header info
@@ -94,6 +96,7 @@ def make_get_request(input_url: str) -> bool:
                     url = get_header_info(s, data)
                     data = []
                     status_code = 0
+                    s.close()
                     break
 
     # redirect limit reached

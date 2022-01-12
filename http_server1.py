@@ -1,3 +1,4 @@
+from os.path import isfile
 from socket import socket, AF_INET, SOCK_STREAM
 from sys import argv, exit, stderr
 
@@ -16,14 +17,31 @@ def get_port_input() -> int:
     return port
 
 
+def send_res(conn, status_code: int) -> None:
+    print(status_code)
+    res = "Thank you!"
+    conn.sendall(res.encode())
+
+
+def handle_get_request(conn, page: str) -> None:
+    print(page)
+    if not isfile(page):
+        send_res(conn, status_code=404)
+    elif page.split(".")[1] not in ["htm", "html"]:
+        send_res(conn, status_code=403)
+    else:
+        send_res(conn, status_code=200)
+
+
 def handle_client(conn) -> None:
     data = []
     while True:
         buf = conn.recv(1)
-        data.append(buf.decode())
-        if "".join(data[-4:]) == "\r\n\r\n":
+        if buf.decode() == "\r":
             break
-    print("".join(data))
+        data.append(buf.decode())
+    page = "".join(data).split(" ")[1][1:]
+    handle_get_request(conn=conn, page=page if page else "index.html")
     conn.close()
 
 
