@@ -16,7 +16,7 @@ def get_url_input() -> str:
 def get_url_parts(url: str) -> tuple:
     # input url must start with 'http://'
     if url[:5] == "https":
-        stderr.write("Program does not support HTTPS protocol.")
+        stderr.write("Program does not support HTTPS protocol.\n")
         exit(1)
     if url[:7] != "http://":
         exit(1)
@@ -44,9 +44,12 @@ def make_get_request(input_url: str) -> bool:
     url = input_url
     data = []
     status_code = 0
-    for _ in range(REDIRECT_LIMIT + 1):
+    for attempt in range(REDIRECT_LIMIT + 1):
         if data:
             break
+
+        if attempt > 0:
+            stderr.write(f"Redirected to: {url}\n")
 
         host, page, port = get_url_parts(url)
 
@@ -97,13 +100,12 @@ def make_get_request(input_url: str) -> bool:
     if not data:
         return False
 
-    stdout.write("".join(data))
+    stdout.write(f"{''.join(data)}\n")
     return status_code < 400
 
 
 def main() -> None:
-    input_url = get_url_input()
-    if not make_get_request(input_url):
+    if not make_get_request(get_url_input()):
         exit(1)
     exit(0)
 
