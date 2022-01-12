@@ -3,26 +3,28 @@ from socket import socket, AF_INET, SOCK_STREAM
 from sys import argv, exit, stderr, stdout
 
 
-def get_url_parts() -> tuple:
+def get_url_input() -> str:
     # program should take exactly one parameter
     if len(argv) != 2:
         exit(1)
-    inp = argv[1]
+    return argv[1]
 
+
+def get_url_parts(url: str) -> tuple:
     # input url must start with 'http://'
-    if inp[:5] == "https":
+    if url[:5] == "https":
         stderr.write("Program does not support HTTPS protocol.")
         exit(1)
-    if inp[:7] == "http":
+    if url[:7] != "http://":
         exit(1)
 
-    url, port = findall("http://([^:]+):?([0-9]+)?", inp)[0]
-    host, page = findall("([^/]+)(/.+)?", url)[0]
+    host_and_page, port = findall("http://([^:]+):?([0-9]+)?", url)[0]
+    host, page = findall("([^/]+)(/.+)?", host_and_page)[0]
 
     return host, "/" if page == "" else page, 80 if port == "" else int(port)
 
 
-def get_content_info(s, data: list) -> str:
+def get_header_info(s, data: list) -> str:
     ans = []
     while True:
         buf = s.recv(1)
@@ -35,50 +37,60 @@ def get_content_info(s, data: list) -> str:
     return "".join(ans)
 
 
-def make_get_request(url_parts: tuple) -> bool:
-    host, page, port = url_parts
+def make_get_request(url: str) -> bool:
+    host, page, port = get_url_parts(url)
 
     s = socket(AF_INET, SOCK_STREAM)
     s.connect((host, port))
     req = f"GET {page} HTTP/1.0\r\nHost: {host}\r\n\r\n"
     s.sendall(req.encode())
 
-    cont_len = 0
-    cont_type = ""
+    status_code = 0
+    content_len = 0
+    content_type = ""
 
     data = []
     is_body = False
     while True:
-        buf = s.recv(1)  # receive one byte at a time
+        # receive one byte at a time; break when no more
+        buf = s.recv(1)
         if not buf:
             break
-        data += buf.decode()
+        data.append(buf.decode())
+
+        # get response status code
+        if len(data) == 12:
+            status_code = int("".join(data[-3:]))
 
         # if two consecutive returns, then body starts
         if "".join(data[-4:]) == "\r\n\r\n":
             is_body = True
 
         # if body started and content length specified, break when content length bytes are received
-        if is_body and cont_len:
-            cont_len -= 1
-            if cont_len == 0:
+        if is_body and content_len:
+            content_len -= 1
+            if content_len == 0:
                 break
 
         # if body not started, check for content length and content type info
-        if not is_body and not cont_len and "".join(data[-16:]) == "Content-Length: ":
-            cont_len = int(get_content_info(s, data))
-        if not is_body and not cont_type and "".join(data[-14:]) == "Content-Type: ":
-            cont_type = get_content_info(s, data)
-            if cont_type[:9] != "text/html":
-                return False
+        if not is_body:
+            if not content_len and "".join(data[-16:]) == "Content-Length: ":
+                content_len = int(get_header_info(s, data))
+            if not content_type and "".join(data[-14:]) == "Content-Type: ":
+                content_type = get_header_info(s, data)
+                if content_type[:9] != "text/html":
+                    return False
+            if status_code in [301, 302] and "".join(data[-10:]) == "Location: ":
+                redirect_url = get_header_info(s, data)
+                return make_get_request(redirect_url)
 
     stdout.write("".join(data))
-    return True
+    return status_code < 400
 
 
-def main():
-    url_parts = get_url_parts()
-    if not make_get_request(url_parts):
+def main() -> None:
+    url = get_url_input()
+    if not make_get_request(url):
         exit(1)
     exit(0)
 
