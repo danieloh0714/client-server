@@ -1,21 +1,25 @@
-from re import fullmatch
+from re import findall
 from socket import socket, AF_INET, SOCK_STREAM
 from sys import argv, exit, stderr, stdout
 
 
-def get_parsed_url() -> tuple:
+def get_url_parts() -> tuple:
     # program should take exactly one parameter
     if len(argv) != 2:
         exit(1)
-    url = argv[1]
+    inp = argv[1]
 
     # input url must start with 'http://'
-    if url[:5] == "https":
+    if inp[:5] == "https":
         stderr.write("Program does not support HTTPS protocol.")
         exit(1)
-    if not fullmatch("http://.*", url):
+    if inp[:7] == "http":
         exit(1)
-    return url, url, url
+
+    url, port = findall("http://([^:]+):?([0-9]+)?", inp)[0]
+    host, page = findall("([^/]+)(/.+)?", url)[0]
+
+    return host, "/" if page == "" else page, 80 if port == "" else int(port)
 
 
 def get_content_info(s, data: list) -> str:
@@ -32,15 +36,11 @@ def get_content_info(s, data: list) -> str:
 
 
 def make_get_request(url_parts: tuple) -> bool:
-    url_host, url_page, url_port = url_parts
-    # example values for now
-    url_host = "insecure.stevetarzia.com"
-    url_page = "/basic.html"
-    url_port = 80
+    host, page, port = url_parts
 
     s = socket(AF_INET, SOCK_STREAM)
-    s.connect((url_host, url_port))
-    req = f"GET {url_page} HTTP/1.0\r\nHost: {url_host}\r\n\r\n"
+    s.connect((host, port))
+    req = f"GET {page} HTTP/1.0\r\nHost: {host}\r\n\r\n"
     s.sendall(req.encode())
 
     cont_len = 0
@@ -77,7 +77,7 @@ def make_get_request(url_parts: tuple) -> bool:
 
 
 def main():
-    url_parts = get_parsed_url()
+    url_parts = get_url_parts()
     if not make_get_request(url_parts):
         exit(1)
     exit(0)
