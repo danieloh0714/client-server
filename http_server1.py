@@ -16,15 +16,28 @@ def get_port_input() -> int:
     return port
 
 
-def create_socket(port: int) -> socket:
+def handle_client(conn) -> None:
+    data = []
+    while True:
+        buf = conn.recv(1)
+        data.append(buf.decode())
+        if "".join(data[-4:]) == "\r\n\r\n":
+            break
+    print("".join(data))
+    conn.close()
+
+
+def run_server(port: int) -> None:
     s = socket(AF_INET, SOCK_STREAM)
     s.bind(("", port))
     s.listen()
-    return s
+    while True:
+        conn, _ = s.accept()
+        handle_client(conn)
 
 
 def main() -> None:
-    s = create_socket(get_port_input())
+    run_server(port=get_port_input())
 
 
 if __name__ == "__main__":
