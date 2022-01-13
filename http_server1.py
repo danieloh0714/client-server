@@ -1,6 +1,14 @@
+from datetime import datetime
 from os.path import isfile
 from socket import socket, AF_INET, SOCK_STREAM
 from sys import argv, exit, stderr
+
+
+status_code_messages = {
+    200: "OK",
+    403: "Forbidden",
+    404: "Not Found",
+}
 
 
 def get_port_input() -> int:
@@ -17,23 +25,29 @@ def get_port_input() -> int:
     return port
 
 
-def send_res(conn, status_code: int) -> None:
-    print(status_code)
-    res = "Thank you!"
-    conn.sendall(res.encode())
+def send_res(conn: socket, page: str, status_code: int) -> None:
+    res = [f"HTTP/1.0 {status_code} {status_code_messages[status_code]}\r\n"]
+    if status_code == 200:
+        f = open(page, mode="r").read()
+        res.append(f"Content-Length: {len(f)}\r\n")
+        res.append(f"Content-Type: text/html; charset=utf-8\r\n")
+
+        res.append("\r\n")
+        res.append(f)
+    print("".join(res))
+    conn.sendall("".join(res).encode())
 
 
-def handle_get_request(conn, page: str) -> None:
-    print(page)
+def handle_get_request(conn: socket, page: str) -> None:
     if not isfile(page):
-        send_res(conn, status_code=404)
+        send_res(conn, page, status_code=404)
     elif page.split(".")[1] not in ["htm", "html"]:
-        send_res(conn, status_code=403)
+        send_res(conn, page, status_code=403)
     else:
-        send_res(conn, status_code=200)
+        send_res(conn, page, status_code=200)
 
 
-def handle_client(conn) -> None:
+def handle_client(conn: socket) -> None:
     data = []
     while True:
         buf = conn.recv(1)
@@ -50,7 +64,7 @@ def run_server(port: int) -> None:
     s.bind(("", port))
     s.listen()
     while True:
-        conn, _ = s.accept()
+        conn = s.accept()[0]
         handle_client(conn)
 
 

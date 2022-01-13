@@ -27,7 +27,7 @@ def get_url_parts(url: str) -> tuple:
     return host, 80 if port == "" else int(port), "/" if page == "" else page
 
 
-def get_header_info(s, data: list) -> str:
+def get_header_info(s: socket, data: list) -> str:
     ans = []
     while True:
         buf = s.recv(1)
