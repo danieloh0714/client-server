@@ -21,10 +21,10 @@ def get_url_parts(url: str) -> tuple:
     if url[:7] != "http://":
         exit(1)
 
-    host_and_page, port = findall("http://([^:]+):?([0-9]+)?", url)[0]
-    host, page = findall("([^/]+)(/.+)?", host_and_page)[0]
+    host_and_port, page = findall("http://([^/]+)(/.+)?", url)[0]
+    host, port = findall("([^:]+):?(.+)?", host_and_port)[0]
 
-    return host, "/" if page == "" else page, 80 if port == "" else int(port)
+    return host, 80 if port == "" else int(port), "/" if page == "" else page
 
 
 def get_header_info(s, data: list) -> str:
@@ -51,7 +51,7 @@ def make_get_request(input_url: str) -> bool:
         if attempt > 0:
             stderr.write(f"Redirected to: {url}\n")
 
-        host, page, port = get_url_parts(url)
+        host, port, page = get_url_parts(url)
 
         s = socket(AF_INET, SOCK_STREAM)
         s.connect((host, port))
