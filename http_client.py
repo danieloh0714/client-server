@@ -16,7 +16,7 @@ def get_url_input() -> str:
 def get_url_parts(url: str) -> tuple:
     # input url must start with 'http://'
     if url[:5] == "https":
-        stderr.write("Program does not support HTTPS protocol.\n")
+        stderr.write("Program does not support HTTPS protocol.\r\n")
         exit(1)
     if url[:7] != "http://":
         exit(1)
@@ -49,7 +49,7 @@ def make_get_request(input_url: str) -> bool:
             break
 
         if attempt > 0:
-            stderr.write(f"Redirected to: {url}\n")
+            stderr.write(f"Redirected to: {url}\r\n")
 
         host, port, page = get_url_parts(url)
 
@@ -70,12 +70,13 @@ def make_get_request(input_url: str) -> bool:
             data.append(buf.decode())
 
             # get response status code
-            if len(data) == 12:
+            if not is_body and len(data) == 12:
                 status_code = int("".join(data[-3:]))
 
             # if two consecutive returns, then body starts
-            if "".join(data[-4:]) == "\r\n\r\n":
+            if not is_body and "".join(data[-4:]) == "\r\n\r\n":
                 is_body = True
+                data = []
 
             # if body started and content length specified, break when content length bytes are received
             if is_body and content_len:
@@ -103,7 +104,7 @@ def make_get_request(input_url: str) -> bool:
     if not data:
         return False
 
-    stdout.write(f"{''.join(data)}\n")
+    stdout.write(f"{''.join(data)}\r\n")
     return status_code < 400
 
 
