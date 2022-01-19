@@ -67,7 +67,7 @@ def make_get_request(input_url: str) -> bool:
             if not buf:
                 s.close()
                 break
-            data.append(buf.decode())
+            data.append(buf.decode(errors='ignore'))
 
             # get response status code
             if not is_body and len(data) == 12:
