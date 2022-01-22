@@ -1,27 +1,6 @@
 from os.path import getsize, isfile
 from socket import socket, AF_INET, SOCK_STREAM
-from sys import argv, exit, stderr
-
-
-status_code_messages = {
-    200: "OK",
-    403: "Forbidden",
-    404: "Not Found",
-}
-
-
-def get_port_input() -> int:
-    # program should take exactly one parameter
-    if len(argv) != 2:
-        exit(1)
-    if not argv[1].isdigit():
-        stderr.write("Port number must be a natural number.\n")
-        exit(1)
-    port = int(argv[1])
-    if port < 1024:
-        stderr.write("Port number must be >= 1024.\n")
-        exit(1)
-    return port
+from utils import get_port_input, status_code_messages
 
 
 def send_res(conn: socket, page: str, status_code: int) -> None:
@@ -49,14 +28,16 @@ def handle_get_request(conn: socket, page: str) -> None:
 
 def handle_client(conn: socket) -> None:
     data = []
-    while True:
-        buf = conn.recv(1)
-        if buf.decode() == "\r":
-            break
-        data.append(buf.decode())
-    page = "".join(data).split(" ")[1][1:]
-    handle_get_request(conn=conn, page=page if page else "index.html")
-    conn.close()
+    try:
+        while True:
+            buf = conn.recv(1)
+            if buf.decode() == "\r":
+                break
+            data.append(buf.decode())
+        page = "".join(data).split(" ")[1][1:]
+        handle_get_request(conn=conn, page=page if page else "index.html")
+    finally:
+        conn.close()
 
 
 def run_server(port: int) -> None:

@@ -1,16 +1,10 @@
 from re import findall
 from socket import socket, AF_INET, SOCK_STREAM
-from sys import argv, exit, stderr, stdout
+from sys import exit, stderr, stdout
+from utils import get_input
 
 
 REDIRECT_LIMIT = 10
-
-
-def get_url_input() -> str:
-    # program should take exactly one parameter
-    if len(argv) != 2:
-        exit(1)
-    return argv[1]
 
 
 def get_url_parts(url: str) -> tuple:
@@ -112,7 +106,7 @@ def make_get_request(input_url: str) -> bool:
 
 
 def main() -> None:
-    if not make_get_request(get_url_input()):
+    if not make_get_request(get_input()):
         exit(1)
     exit(0)
 
