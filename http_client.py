@@ -61,44 +61,47 @@ def make_get_request(input_url: str) -> bool:
         content_len = 0
         content_type = ""
         is_body = False
-        while True:
-            # receive one byte at a time; break when no more
-            buf = s.recv(1)
-            if not buf:
-                s.close()
-                break
-            data.append(buf.decode(errors="ignore"))
-
-            # get response status code
-            if not is_body and len(data) == 12:
-                status_code = int("".join(data[-3:]))
-
-            # if two consecutive returns, then body starts
-            if not is_body and "".join(data[-4:]) == "\r\n\r\n":
-                is_body = True
-                data = []
-
-            # if body started and content length specified, break when content length bytes are received
-            if is_body and content_len:
-                content_len -= 1
-                if content_len == 0:
-                    s.close()
+        try:
+            while True:
+                # receive one byte at a time; break when no more
+                buf = s.recv(1)
+                if not buf:
                     break
+                data.append(buf.decode(errors="ignore"))
 
-            # if body not started, check for header info
-            if not is_body:
-                if not content_len and "".join(data[-16:]) == "Content-Length: ":
-                    content_len = int(get_header_info(s, data))
-                if not content_type and "".join(data[-14:]) == "Content-Type: ":
-                    content_type = get_header_info(s, data)
-                    if content_type[:9] != "text/html":
-                        return False
-                if status_code in [301, 302] and "".join(data[-10:]) == "Location: ":
-                    url = get_header_info(s, data)
+                # get response status code
+                if not is_body and len(data) == 12:
+                    status_code = int("".join(data[-3:]))
+
+                # if two consecutive returns, then body starts
+                if not is_body and "".join(data[-4:]) == "\r\n\r\n":
+                    is_body = True
                     data = []
-                    status_code = 0
-                    s.close()
-                    break
+
+                # if body started and content length specified, break when content length bytes are received
+                if is_body and content_len:
+                    content_len -= 1
+                    if content_len == 0:
+                        break
+
+                # if body not started, check for header info
+                if not is_body:
+                    if not content_len and "".join(data[-16:]) == "Content-Length: ":
+                        content_len = int(get_header_info(s, data))
+                    if not content_type and "".join(data[-14:]) == "Content-Type: ":
+                        content_type = get_header_info(s, data)
+                        if content_type[:9] != "text/html":
+                            return False
+                    if (
+                        status_code in [301, 302]
+                        and "".join(data[-10:]) == "Location: "
+                    ):
+                        url = get_header_info(s, data)
+                        data = []
+                        status_code = 0
+                        break
+        finally:
+            s.close()
 
     # redirect limit reached
     if not data:
