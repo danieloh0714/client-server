@@ -27,8 +27,8 @@ def handle_get_request(conn: socket, page: str) -> None:
 
 
 def handle_client(conn: socket) -> None:
-    data = []
     try:
+        data = []
         while True:
             buf = conn.recv(1)
             if buf.decode() == "\r":
