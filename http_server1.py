@@ -5,13 +5,14 @@ from utils import get_port_input, status_code_messages
 
 def send_res(conn: socket, page: str, status_code: int) -> None:
     res = [f"HTTP/1.0 {status_code} {status_code_messages[status_code]}\r\n"]
+    res.append(f"Connection: close\r\n")
     if status_code == 200:
         res.append(f"Content-Length: {getsize(page)}\r\n")
-        res.append(f"Connection: close\r\n")
         res.append(f"Content-Type: text/html\r\n")
 
         res.append("\r\n")
         res.append(open(page, mode="r").read())
+        res.append("\r\n")
 
     for c in "".join(res):
         conn.sendall(c.encode())

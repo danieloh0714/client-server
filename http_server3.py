@@ -3,17 +3,6 @@ from socket import socket, AF_INET, SOCK_STREAM
 from utils import get_port_input, status_code_messages
 
 
-def get_operands_product(operands: list) -> float | str:
-    ans = 1
-    for operand in operands:
-        ans *= float(operand)
-    if ans == float("inf"):
-        return "inf"
-    if ans == float("-inf"):
-        return "-inf"
-    return ans
-
-
 def parse_operands(params: list) -> list:
     operands = []
     for param in params:
@@ -27,28 +16,38 @@ def parse_operands(params: list) -> list:
     return operands
 
 
+def get_operands_product(operands: list) -> float | str:
+    ans = 1
+    for operand in operands:
+        ans *= float(operand)
+    if ans == float("inf"):
+        return "inf"
+    if ans == float("-inf"):
+        return "-inf"
+    return ans
+
+
 def send_res(conn: socket, params: list, status_code: int) -> None:
     res = [f"HTTP/1.0 {status_code} {status_code_messages[status_code]}\r\n"]
+    res.append(f"Connection: close\r\n")
     if status_code == 200:
         operands = parse_operands(params)
         if not operands:
-            conn.sendall(f"HTTP/1.0 {400} {status_code_messages[400]}\r\n".encode())
-            return
+            res[0] = f"HTTP/1.0 400 {status_code_messages[400]}\r\n"
+        else:
+            res.append(f"Content-Type: application/json\r\n")
 
-        res.append(f"Connection: close\r\n")
-        res.append(f"Content-Type: application/json\r\n")
-
-        res.append("\r\n")
-        res.append(
-            dumps(
-                {
-                    "operation": "product",
-                    "operands": operands,
-                    "result": get_operands_product(operands),
-                }
+            res.append("\r\n")
+            res.append(
+                dumps(
+                    {
+                        "operation": "product",
+                        "operands": operands,
+                        "result": get_operands_product(operands),
+                    }
+                )
             )
-        )
-        res.append("\r\n")
+            res.append("\r\n")
     conn.sendall("".join(res).encode())
 
 
