@@ -9,10 +9,8 @@ def send_res(conn: socket, page: str, status_code: int) -> None:
     if status_code == 200:
         res.append(f"Content-Length: {getsize(page)}\r\n")
         res.append(f"Content-Type: text/html\r\n")
-
         res.append("\r\n")
         res.append(open(page, mode="r").read())
-        res.append("\r\n")
 
     for c in "".join(res):
         conn.sendall(c.encode())
