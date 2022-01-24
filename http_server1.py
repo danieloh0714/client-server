@@ -1,19 +1,20 @@
-from os.path import getsize, isfile
+from os.path import isfile
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import get_port_input, status_code_messages
+from utils import get_port_input, status_code_msgs
 
 
 def send_res(conn: socket, page: str, status_code: int) -> None:
-    res = [f"HTTP/1.0 {status_code} {status_code_messages[status_code]}\r\n"]
-    res.append(f"Connection: close\r\n")
+    conn.sendall(
+        f"HTTP/1.0 {status_code} {status_code_msgs[status_code]}\r\nConnection: close\r\n".encode()
+    )
     if status_code == 200:
-        res.append(f"Content-Length: {getsize(page)}\r\n")
-        res.append(f"Content-Type: text/html\r\n")
-        res.append("\r\n")
-        res.append(open(page, mode="r").read())
+        f = open(page, mode="r").read()
+        conn.sendall(
+            f"Content-Length: {len(f)}\r\nContent-Type: text/html\r\n\r\n".encode()
+        )
 
-    for c in "".join(res):
-        conn.sendall(c.encode())
+        for c in f:
+            conn.sendall(c.encode())
 
 
 def handle_get_request(conn: socket, page: str) -> None:
@@ -40,11 +41,11 @@ def handle_client(conn: socket) -> None:
 
 
 def run_server(port: int) -> None:
-    s = socket(AF_INET, SOCK_STREAM)
-    s.bind(("", port))
-    s.listen()
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.bind(("", port))
+    sock.listen()
     while True:
-        handle_client(conn=s.accept()[0])
+        handle_client(conn=sock.accept()[0])
 
 
 def main() -> None:

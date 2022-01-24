@@ -1,9 +1,9 @@
 from json import dumps
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import get_port_input, status_code_messages
+from utils import get_port_input, status_code_msgs
 
 
-def parse_operands(params: list) -> list:
+def parse_params(params: list) -> list:
     operands = []
     for param in params:
         try:
@@ -28,27 +28,21 @@ def get_operands_product(operands: list) -> float | str:
 
 
 def send_res(conn: socket, params: list, status_code: int) -> None:
-    res = [f"HTTP/1.0 {status_code} {status_code_messages[status_code]}\r\n"]
-    res.append(f"Connection: close\r\n")
-    if status_code == 200:
-        operands = parse_operands(params)
-        if not operands:
-            res[0] = f"HTTP/1.0 400 {status_code_messages[400]}\r\n"
-        else:
-            res.append(f"Content-Type: application/json\r\n")
-
-            res.append("\r\n")
-            res.append(
-                dumps(
-                    {
-                        "operation": "product",
-                        "operands": operands,
-                        "result": get_operands_product(operands),
-                    }
-                )
-            )
-            res.append("\r\n")
-    conn.sendall("".join(res).encode())
+    operands = parse_params(params)
+    real_status_code = 400 if (status_code == 200 and not operands) else status_code
+    conn.sendall(
+        f"HTTP/1.0 {real_status_code} {status_code_msgs[real_status_code]}\r\nConnection: close\r\n".encode()
+    )
+    if real_status_code == 200:
+        conn.sendall(f"Content-Type: application/json\r\n\r\n".encode())
+        body = dumps(
+            {
+                "operation": "product",
+                "operands": operands,
+                "result": get_operands_product(operands),
+            }
+        )
+        conn.sendall(f"{body}\r\n".encode())
 
 
 def handle_get_request(conn: socket, query: str) -> None:

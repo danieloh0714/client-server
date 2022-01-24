@@ -1,7 +1,7 @@
 from sys import argv, exit, stderr
 
 
-status_code_messages = {
+status_code_msgs = {
     200: "OK",
     400: "Bad Request",
     403: "Forbidden",
