@@ -16,7 +16,7 @@ def parse_params(params: list) -> list:
     return ops
 
 
-def get_ops_prod(ops: list) -> float | str:
+def get_ops_prod(ops: list):
     ans = 1
     for op in ops:
         ans *= float(op)
