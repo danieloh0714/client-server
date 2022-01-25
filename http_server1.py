@@ -17,7 +17,7 @@ def send_res(conn: socket, page: str, status_code: int) -> None:
             conn.sendall(c.encode())
 
 
-def handle_get_request(conn: socket, page: str) -> None:
+def handle_get_req(conn: socket, page: str) -> None:
     if not isfile(page):
         send_res(conn, page, status_code=404)
     elif page.split(".")[1] not in ["htm", "html"]:
@@ -35,7 +35,7 @@ def handle_client(conn: socket) -> None:
                 break
             data.append(buf.decode())
         page = "".join(data).split(" ")[1][1:]
-        handle_get_request(conn=conn, page=page if page else "index.html")
+        handle_get_req(conn=conn, page=page if page else "index.html")
     finally:
         conn.close()
 

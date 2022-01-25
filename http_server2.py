@@ -5,7 +5,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from utils import get_port_input, status_code_msgs
 
 
-def send_res(page: str, status_code: int) -> str:
+def get_body(page: str, status_code: int) -> str:
     res = []
     res.append(
         f"HTTP/1.0 {status_code} {status_code_msgs[status_code]}\r\nConnection: close\r\n"
@@ -16,12 +16,12 @@ def send_res(page: str, status_code: int) -> str:
     return "".join(res)
 
 
-def handle_get_request(page: str) -> str:
+def handle_get_req(page: str) -> str:
     if not isfile(page):
-        return send_res(page, status_code=404)
+        return get_body(page, status_code=404)
     if page.split(".")[1] not in ["htm", "html"]:
-        return send_res(page, status_code=403)
-    return send_res(page, status_code=200)
+        return get_body(page, status_code=403)
+    return get_body(page, status_code=200)
 
 
 def run_server(port: int) -> None:
@@ -41,7 +41,7 @@ def run_server(port: int) -> None:
                 message_queues[conn] = Queue()
             else:
                 buf = s.recv(1024)
-                if buf:
+                if buf and buf.decode()[:3] == "GET":
                     message_queues[s].put(buf.decode())
                     if s not in outputs:
                         outputs.append(s)
@@ -53,13 +53,12 @@ def run_server(port: int) -> None:
                     del message_queues[s]
         for s in writable:
             try:
-                page = message_queues[s].get_nowait().split(" ")[1][1:]
+                next_msg = message_queues[s].get_nowait()
             except Empty:
                 outputs.remove(s)
             else:
-                s.sendall(
-                    handle_get_request(page=page if page else "index.html").encode()
-                )
+                page = next_msg.split(" ")[1][1:]
+                s.sendall(handle_get_req(page=page if page else "index.html").encode())
         for s in exceptional:
             inputs.remove(s)
             if s in outputs:

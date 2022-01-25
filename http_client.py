@@ -34,7 +34,7 @@ def get_header_info(s: socket, data: list) -> str:
     return "".join(ans)
 
 
-def make_get_request(input_url: str) -> bool:
+def make_get_req(input_url: str) -> bool:
     url = input_url
     data = []
     status_code = 0
@@ -106,7 +106,7 @@ def make_get_request(input_url: str) -> bool:
 
 
 def main() -> None:
-    if not make_get_request(get_input()):
+    if not make_get_req(get_input()):
         exit(1)
     exit(0)
 

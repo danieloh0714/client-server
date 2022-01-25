@@ -4,22 +4,22 @@ from utils import get_port_input, status_code_msgs
 
 
 def parse_params(params: list) -> list:
-    operands = []
+    ops = []
     for param in params:
         try:
-            _, operand = param.split("=")
-            if not operand.lstrip("-").replace(".", "", 1).isdigit():
+            _, op = param.split("=")
+            if not op.lstrip("-").replace(".", "", 1).isdigit():
                 return []
-            operands.append(float(operand))
+            ops.append(float(op))
         except:
             return []
-    return operands
+    return ops
 
 
-def get_operands_product(operands: list) -> float | str:
+def get_ops_prod(ops: list) -> float | str:
     ans = 1
-    for operand in operands:
-        ans *= float(operand)
+    for op in ops:
+        ans *= float(op)
     if ans == float("inf"):
         return "inf"
     if ans == float("-inf"):
@@ -28,8 +28,8 @@ def get_operands_product(operands: list) -> float | str:
 
 
 def send_res(conn: socket, params: list, status_code: int) -> None:
-    operands = parse_params(params)
-    real_status_code = 400 if (status_code == 200 and not operands) else status_code
+    ops = parse_params(params)
+    real_status_code = 400 if (status_code == 200 and not ops) else status_code
     conn.sendall(
         f"HTTP/1.0 {real_status_code} {status_code_msgs[real_status_code]}\r\nConnection: close\r\n".encode()
     )
@@ -38,14 +38,14 @@ def send_res(conn: socket, params: list, status_code: int) -> None:
         body = dumps(
             {
                 "operation": "product",
-                "operands": operands,
-                "result": get_operands_product(operands),
+                "operands": ops,
+                "result": get_ops_prod(ops),
             }
         )
         conn.sendall(f"{body}\r\n".encode())
 
 
-def handle_get_request(conn: socket, query: str) -> None:
+def handle_get_req(conn: socket, query: str) -> None:
     if query[:7] != "product":
         send_res(conn, [], 404)
     else:
@@ -61,7 +61,7 @@ def handle_client(conn: socket) -> None:
                 break
             data.append(buf.decode())
         query = "".join(data).split(" ")[1][1:]
-        handle_get_request(conn=conn, query=query)
+        handle_get_req(conn=conn, query=query)
     finally:
         conn.close()
 
