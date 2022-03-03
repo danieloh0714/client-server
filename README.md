@@ -1,4 +1,4 @@
-Simple client and server implementations using the socket library in Python.
+Simple client and various server implementations using the socket library in Python.
 
 ```http_client.py``` - a replica of the ```curl``` program.
 
